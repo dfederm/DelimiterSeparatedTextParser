@@ -10,6 +10,8 @@
     <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)\build\CodeAnalysis.ruleset</CodeAnalysisRuleSet>
     <Deterministic>true</Deterministic>
     <LangVersion>Latest</LangVersion>
+    <!-- Enable Code Coverage. This is a temporary workaround for https://github.com/Microsoft/vstest/issues/800 -->
+    <DebugType>Full</DebugType>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,7 +19,13 @@
     <PackageReference Include="Microsoft.Net.Compilers" Version="2.8.2" />
 
     <!-- Analyzers -->
+    <PackageReference Include="Microsoft.CodeQuality.Analyzers" Version="2.6.2-beta1">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Microsoft.CodeAnalysis.FxCopAnalyzers" Version="2.6.2-beta1">
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.NetCore.Analyzers" Version="2.6.2-beta1">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.0-beta008">

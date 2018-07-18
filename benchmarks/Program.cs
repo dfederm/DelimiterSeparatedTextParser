@@ -8,12 +8,14 @@ namespace DelimiterSeparatedTextParser.Benchmarks
     using System.IO;
     using System.Text;
     using BenchmarkDotNet.Attributes;
+    using BenchmarkDotNet.Configs;
     using BenchmarkDotNet.Running;
     using NotVisualBasic.FileIO;
     using TinyCsvParser;
     using CsvParser = DelimiterSeparatedTextParser.CsvParser;
     using FastCsvParser = global::CsvParser.CsvReader;
 
+    [GroupBenchmarksBy(BenchmarkLogicalGroupRule.ByCategory, BenchmarkLogicalGroupRule.ByParams)]
     [MemoryDiagnoser]
     public class Program
     {
@@ -31,8 +33,8 @@ namespace DelimiterSeparatedTextParser.Benchmarks
         private ReadOnlyMemory<char> memory;
         private byte[] bytes;
 
-        [Params(10, 1000, 100000)]
-        public int NumRecords { get; set; }
+        [Params("Small", "Medium", "Large")]
+        public string DataSize { get; set; }
 
         public static void Main() => BenchmarkRunner.Run<Program>();
 
@@ -41,11 +43,38 @@ namespace DelimiterSeparatedTextParser.Benchmarks
         {
             var random = new Random(27);
 
-            var arrLength = (this.NumRecords * ((NumValues * ValueLength) + ((NumValues - 1) * CsvParser.ValueDelimeter.Length))) + ((this.NumRecords - 1) * CsvParser.RecordDelimeter.Length);
+            int numRecords;
+            switch (this.DataSize)
+            {
+                case "Small":
+                {
+                    numRecords = 10;
+                    break;
+                }
+
+                case "Medium":
+                {
+                    numRecords = 1000;
+                    break;
+                }
+
+                case "Large":
+                {
+                    numRecords = 100000;
+                    break;
+                }
+
+                default:
+                {
+                    throw new InvalidOperationException($"Unrecognized DataSize: {this.DataSize}");
+                }
+            }
+
+            var arrLength = (numRecords * ((NumValues * ValueLength) + ((NumValues - 1) * CsvParser.ValueDelimeter.Length))) + ((numRecords - 1) * CsvParser.RecordDelimeter.Length);
             var arr = new char[arrLength];
             var index = 0;
 
-            for (var recordNum = 0; recordNum < this.NumRecords; recordNum++)
+            for (var recordNum = 0; recordNum < numRecords; recordNum++)
             {
                 if (recordNum > 0)
                 {
@@ -82,7 +111,27 @@ namespace DelimiterSeparatedTextParser.Benchmarks
             this.bytes = Encoding.UTF8.GetBytes(arr);
         }
 
-        [Benchmark(Description = "DelimiterSeparatedTextParser")]
+        [BenchmarkCategory("Reader")]
+        [Benchmark(Baseline = true)]
+        public int DelimiterSeparatedTextReader()
+        {
+            var totalLength = 0;
+            var reader = new DsvReader(this.memory.Span, CsvParser.ValueDelimeter.AsSpan(), CsvParser.RecordDelimeter.AsSpan());
+
+            while (reader.MoveNextRecord())
+            {
+                while (reader.MoveNextValue())
+                {
+                    var value = reader.Current;
+                    totalLength += value.Length;
+                }
+            }
+
+            return totalLength;
+        }
+
+        [BenchmarkCategory("Parser")]
+        [Benchmark(Baseline = true)]
         public int DelimiterSeparatedTextParser()
         {
             var totalLength = 0;
@@ -102,7 +151,8 @@ namespace DelimiterSeparatedTextParser.Benchmarks
             return totalLength;
         }
 
-        [Benchmark(Baseline = true)]
+        [BenchmarkCategory("Parser")]
+        [Benchmark]
         public int StringSplit()
         {
             var totalLength = 0;
@@ -123,6 +173,7 @@ namespace DelimiterSeparatedTextParser.Benchmarks
             return totalLength;
         }
 
+        [BenchmarkCategory("Parser")]
         [Benchmark(Description = "TinyCsvParser")]
         public int TinyCsvParserBenchmark()
         {
@@ -152,6 +203,7 @@ namespace DelimiterSeparatedTextParser.Benchmarks
             return totalLength;
         }
 
+        [BenchmarkCategory("Reader")]
         [Benchmark(Description = "FastCsvParser")]
         public int FastCsvParser()
         {
@@ -175,6 +227,7 @@ namespace DelimiterSeparatedTextParser.Benchmarks
             return totalLength;
         }
 
+        [BenchmarkCategory("Reader")]
         [Benchmark(Description = "CsvTextFieldParser")]
         public int CsvTextFieldParser()
         {
@@ -198,6 +251,7 @@ namespace DelimiterSeparatedTextParser.Benchmarks
             return totalLength;
         }
 
+        [BenchmarkCategory("Reader")]
         [Benchmark(Description = "CsvHelper")]
         public int CsvHelper()
         {
@@ -220,6 +274,7 @@ namespace DelimiterSeparatedTextParser.Benchmarks
             return totalLength;
         }
 
+        [BenchmarkCategory("Parser")]
         [Benchmark(Description = "FileHelpers")]
         public int FileHelpersBenchmark()
         {

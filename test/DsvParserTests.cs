@@ -134,7 +134,7 @@ namespace DelimiterSeparatedTextParser.Tests
 
             var builder = CreateTable(CsvParser.ValueDelimeter, CsvParser.RecordDelimeter, NumRecords, NumValues);
 
-            var parser = new CsvParser(new ReadOnlyMemory<char>(builder.ToString().ToCharArray()));
+            var parser = new CsvParser(builder.ToString().AsMemory());
 
             var numRecords = parser.RecordsLength;
             Assert.AreEqual(NumRecords, numRecords);
@@ -158,7 +158,7 @@ namespace DelimiterSeparatedTextParser.Tests
 
             var builder = CreateTable(TsvParser.ValueDelimeter, TsvParser.RecordDelimeter, NumRecords, NumValues);
 
-            var parser = new TsvParser(new ReadOnlyMemory<char>(builder.ToString().ToCharArray()));
+            var parser = new TsvParser(builder.ToString().AsMemory());
 
             var numRecords = parser.RecordsLength;
             Assert.AreEqual(NumRecords, numRecords);
@@ -176,7 +176,7 @@ namespace DelimiterSeparatedTextParser.Tests
 
         private static DsvParser CreateParser(StringBuilder builder, string valueDelimeter, string recordDelimeter)
             => new DsvParser(
-                new ReadOnlyMemory<char>(builder.ToString().ToCharArray()),
+                builder.ToString().AsMemory(),
                 valueDelimeter.AsSpan(),
                 recordDelimeter.AsSpan());
 

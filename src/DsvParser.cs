@@ -6,6 +6,7 @@ namespace DelimiterSeparatedTextParser
 {
     using System;
     using System.Collections.Generic;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Delimiter-separated value parser.
@@ -17,10 +18,19 @@ namespace DelimiterSeparatedTextParser
         // Outer list is each record. Inner list is each entry. The final value is an encoded value representing the index and length the value exists at in the memory buffer.
         private readonly List<List<long>> indexData;
 
-        public DsvParser(ReadOnlyMemory<char> memory, ReadOnlySpan<char> valueDelimeter, ReadOnlySpan<char> recordDelimeter)
+        public DsvParser(string str, string valueDelimeter, string recordDelimeter)
+            : this(new DsvReader(str.AsMemory(), valueDelimeter, recordDelimeter))
         {
-            this.memory = memory;
-            var reader = new DsvReader(memory.Span, valueDelimeter, recordDelimeter);
+        }
+
+        public DsvParser(ReadOnlyMemory<char> memory, string valueDelimeter, string recordDelimeter)
+            : this(new DsvReader(memory, valueDelimeter, recordDelimeter))
+        {
+        }
+
+        public DsvParser(DsvReader reader)
+        {
+            this.memory = reader.Memory;
             this.indexData = ParseIndexData(reader);
         }
 
@@ -61,8 +71,10 @@ namespace DelimiterSeparatedTextParser
         }
 
         // See: https://stackoverflow.com/questions/827252/c-sharp-making-one-int64-from-two-int32s
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static long Encode(int left, int right) => (long)left << 32 | (uint)right;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static (int, int) Decode(long value) => ((int)(value >> 32), (int)(value & 0xffffffffL));
     }
 }

@@ -23,14 +23,13 @@ namespace DelimiterSeparatedTextParser.Benchmarks
         private const int ValueLength = 10;
         private const int NumValues = 10;
 
-        private static readonly char[] RecordDelimeterChars = CsvParser.RecordDelimeter.ToCharArray();
-        private static readonly string[] RecordDelimeterStrings = { CsvParser.RecordDelimeter };
+        private static readonly char[] RecordDelimeterChars = CsvReader.RecordDelimeter.ToCharArray();
+        private static readonly string[] RecordDelimeterStrings = { CsvReader.RecordDelimeter };
 
-        private static readonly char ValueDelimeterChar = CsvParser.ValueDelimeter[0];
-        private static readonly char[] ValueDelimeterChars = CsvParser.ValueDelimeter.ToCharArray();
+        private static readonly char ValueDelimeterChar = CsvReader.ValueDelimeter[0];
+        private static readonly char[] ValueDelimeterChars = CsvReader.ValueDelimeter.ToCharArray();
 
         private string str;
-        private ReadOnlyMemory<char> memory;
         private byte[] bytes;
 
         [Params("Small", "Medium", "Large")]
@@ -70,7 +69,7 @@ namespace DelimiterSeparatedTextParser.Benchmarks
                 }
             }
 
-            var arrLength = (numRecords * ((NumValues * ValueLength) + ((NumValues - 1) * CsvParser.ValueDelimeter.Length))) + ((numRecords - 1) * CsvParser.RecordDelimeter.Length);
+            var arrLength = (numRecords * ((NumValues * ValueLength) + ((NumValues - 1) * CsvReader.ValueDelimeter.Length))) + ((numRecords - 1) * CsvReader.RecordDelimeter.Length);
             var arr = new char[arrLength];
             var index = 0;
 
@@ -78,9 +77,9 @@ namespace DelimiterSeparatedTextParser.Benchmarks
             {
                 if (recordNum > 0)
                 {
-                    for (var i = 0; i < CsvParser.RecordDelimeter.Length; i++)
+                    for (var i = 0; i < CsvReader.RecordDelimeter.Length; i++)
                     {
-                        arr[index++] = CsvParser.RecordDelimeter[i];
+                        arr[index++] = CsvReader.RecordDelimeter[i];
                     }
                 }
 
@@ -88,9 +87,9 @@ namespace DelimiterSeparatedTextParser.Benchmarks
                 {
                     if (valueNum > 0)
                     {
-                        for (var i = 0; i < CsvParser.ValueDelimeter.Length; i++)
+                        for (var i = 0; i < CsvReader.ValueDelimeter.Length; i++)
                         {
-                            arr[index++] = CsvParser.ValueDelimeter[i];
+                            arr[index++] = CsvReader.ValueDelimeter[i];
                         }
                     }
 
@@ -106,7 +105,6 @@ namespace DelimiterSeparatedTextParser.Benchmarks
                 throw new InvalidOperationException("Did not set up correctly");
             }
 
-            this.memory = new ReadOnlyMemory<char>(arr);
             this.str = new string(arr);
             this.bytes = Encoding.UTF8.GetBytes(arr);
         }
@@ -116,7 +114,7 @@ namespace DelimiterSeparatedTextParser.Benchmarks
         public int DelimiterSeparatedTextReader()
         {
             var totalLength = 0;
-            var reader = new DsvReader(this.memory.Span, CsvParser.ValueDelimeter.AsSpan(), CsvParser.RecordDelimeter.AsSpan());
+            var reader = new DsvReader(this.str, CsvReader.ValueDelimeter, CsvReader.RecordDelimeter);
 
             while (reader.MoveNextRecord())
             {
@@ -135,7 +133,7 @@ namespace DelimiterSeparatedTextParser.Benchmarks
         public int DelimiterSeparatedTextParser()
         {
             var totalLength = 0;
-            var parser = new CsvParser(this.memory);
+            var parser = new CsvParser(this.str);
 
             var numRecords = parser.RecordsLength;
             for (var recordNum = 0; recordNum < numRecords; recordNum++)

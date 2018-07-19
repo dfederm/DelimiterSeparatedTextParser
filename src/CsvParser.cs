@@ -8,13 +8,24 @@ namespace DelimiterSeparatedTextParser
 
     public sealed class CsvParser : DsvParser
     {
-        public CsvParser(ReadOnlyMemory<char> memory)
-            : base(memory, ValueDelimeter.AsSpan(), RecordDelimeter.AsSpan())
+        public CsvParser(string str)
+            : base(new CsvReader(str))
         {
         }
 
-        public static string ValueDelimeter => ",";
+        public CsvParser(string str, string recordDelimeter)
+            : base(new CsvReader(str, recordDelimeter))
+        {
+        }
 
-        public static string RecordDelimeter => Environment.NewLine;
+        public CsvParser(ReadOnlyMemory<char> memory)
+            : base(new CsvReader(memory))
+        {
+        }
+
+        public CsvParser(ReadOnlyMemory<char> memory, string recordDelimeter)
+            : base(new CsvReader(memory, recordDelimeter))
+        {
+        }
     }
 }

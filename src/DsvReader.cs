@@ -9,53 +9,56 @@ namespace DelimiterSeparatedTextParser
     /// <summary>
     /// Delimiter-separated value reader.
     /// </summary>
-#pragma warning disable CA1815 // Override equals and operator equals on value types
-    public ref struct DsvReader
-#pragma warning restore CA1815
+    public class DsvReader
     {
-        private readonly ReadOnlySpan<char> valueDelimeter;
+        private readonly string valueDelimeter;
 
-        private readonly ReadOnlySpan<char> recordDelimeter;
+        private readonly string recordDelimeter;
 
         // The remainder of the unconsumed data
-        private ReadOnlySpan<char> span;
+        private ReadOnlyMemory<char> memory;
 
         // The index of the span in the global buffer
         private int index;
 
         // The remainder of the unconsumed data for this record
-        private ReadOnlySpan<char> recordSpan;
+        private ReadOnlyMemory<char> recordMemory;
 
         // The index of the span in the global buffer
         private int recordIndex;
 
-        public DsvReader(
-            ReadOnlySpan<char> span,
-            ReadOnlySpan<char> valueDelimeter,
-            ReadOnlySpan<char> recordDelimeter)
+        public DsvReader(string str, string valueDelimeter, string recordDelimeter)
+            : this(str.AsMemory(), valueDelimeter, recordDelimeter)
         {
-            this.span = span;
+        }
+
+        public DsvReader(ReadOnlyMemory<char> memory, string valueDelimeter, string recordDelimeter)
+        {
+            this.memory = memory;
             this.index = 0;
 
-            this.recordSpan = ReadOnlySpan<char>.Empty;
+            this.recordMemory = ReadOnlyMemory<char>.Empty;
             this.recordIndex = 0;
 
             this.valueDelimeter = valueDelimeter;
             this.recordDelimeter = recordDelimeter;
 
-            this.Current = ReadOnlySpan<char>.Empty;
+            this.Current = ReadOnlyMemory<char>.Empty;
             this.CurrentIndex = -1;
         }
 
         /// <summary>
         /// Gets the current value.
         /// </summary>
-        public ReadOnlySpan<char> Current { get; private set; }
+        public ReadOnlyMemory<char> Current { get; private set; }
 
         /// <summary>
         /// Gets the global index of the current value.
         /// </summary>
         public int CurrentIndex { get; private set; }
+
+        // Exposed interally for DsvParser to get at it
+        internal ReadOnlyMemory<char> Memory => this.memory;
 
         /// <summary>
         /// Moves to the next record.
@@ -67,29 +70,29 @@ namespace DelimiterSeparatedTextParser
         public bool MoveNextRecord()
         {
             // Data is completely consumed
-            if (this.span.IsEmpty)
+            if (this.memory.IsEmpty)
             {
-                this.Current = ReadOnlySpan<char>.Empty;
+                this.Current = ReadOnlyMemory<char>.Empty;
                 return false;
             }
 
-            var recordDelimeterIndex = this.span.IndexOf(this.recordDelimeter);
+            var recordDelimeterIndex = this.memory.Span.IndexOf(this.recordDelimeter.AsSpan());
             if (recordDelimeterIndex == -1)
             {
                 // The rest of the span is the final value.
-                this.recordSpan = this.span;
+                this.recordMemory = this.memory;
                 this.recordIndex = this.index;
 
-                this.span = ReadOnlySpan<char>.Empty;
+                this.memory = ReadOnlyMemory<char>.Empty;
                 this.index = -1;
             }
             else
             {
-                this.recordSpan = this.span.Slice(0, recordDelimeterIndex);
+                this.recordMemory = this.memory.Slice(0, recordDelimeterIndex);
                 this.recordIndex = this.index;
 
                 var moveAmount = recordDelimeterIndex + this.recordDelimeter.Length;
-                this.span = this.span.Slice(moveAmount);
+                this.memory = this.memory.Slice(moveAmount);
                 this.index += moveAmount;
             }
 
@@ -106,30 +109,30 @@ namespace DelimiterSeparatedTextParser
         public bool MoveNextValue()
         {
             // Record is completely consumed
-            if (this.recordSpan.IsEmpty)
+            if (this.recordMemory.IsEmpty)
             {
-                this.Current = ReadOnlySpan<char>.Empty;
+                this.Current = ReadOnlyMemory<char>.Empty;
                 this.CurrentIndex = -1;
                 return false;
             }
 
-            var valueDelimeterIndex = this.recordSpan.IndexOf(this.valueDelimeter);
+            var valueDelimeterIndex = this.recordMemory.Span.IndexOf(this.valueDelimeter.AsSpan());
             if (valueDelimeterIndex == -1)
             {
                 // The rest of the span is the final value.
-                this.Current = this.recordSpan;
+                this.Current = this.recordMemory;
                 this.CurrentIndex = this.recordIndex;
 
-                this.recordSpan = ReadOnlySpan<char>.Empty;
+                this.recordMemory = ReadOnlyMemory<char>.Empty;
                 this.recordIndex = -1;
             }
             else
             {
-                this.Current = this.recordSpan.Slice(0, valueDelimeterIndex);
+                this.Current = this.recordMemory.Slice(0, valueDelimeterIndex);
                 this.CurrentIndex = this.recordIndex;
 
                 var moveAmount = valueDelimeterIndex + this.valueDelimeter.Length;
-                this.recordSpan = this.recordSpan.Slice(moveAmount);
+                this.recordMemory = this.recordMemory.Slice(moveAmount);
                 this.recordIndex += moveAmount;
             }
 

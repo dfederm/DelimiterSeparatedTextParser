@@ -4,7 +4,6 @@
 
 namespace DelimiterSeparatedTextParser.Tests
 {
-    using System;
     using System.Text;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -20,8 +19,7 @@ namespace DelimiterSeparatedTextParser.Tests
             const int NumValues = 4;
 
             var builder = CreateTable(ValueDelimeter, RecordDelimeter, NumRecords, NumValues);
-
-            var parser = CreateParser(builder, ValueDelimeter, RecordDelimeter);
+            var parser = new DsvParser(builder.ToString(), ValueDelimeter, RecordDelimeter);
 
             var numRecords = parser.RecordsLength;
             Assert.AreEqual(NumRecords, numRecords);
@@ -58,7 +56,7 @@ namespace DelimiterSeparatedTextParser.Tests
                 AddRecord(builder, ValueDelimeter, recordNum, numValues);
             }
 
-            var parser = CreateParser(builder, ValueDelimeter, RecordDelimeter);
+            var parser = new DsvParser(builder.ToString(), ValueDelimeter, RecordDelimeter);
 
             var numRecords = parser.RecordsLength;
             Assert.AreEqual(NumRecords, numRecords);
@@ -83,8 +81,7 @@ namespace DelimiterSeparatedTextParser.Tests
             const int NumValues = 4;
 
             var builder = CreateTable(ValueDelimeter, RecordDelimeter, NumRecords, NumValues);
-
-            var parser = CreateParser(builder, ValueDelimeter, RecordDelimeter);
+            var parser = new DsvParser(builder.ToString(), ValueDelimeter, RecordDelimeter);
 
             var numRecords = parser.RecordsLength;
             Assert.AreEqual(NumRecords, numRecords);
@@ -109,8 +106,7 @@ namespace DelimiterSeparatedTextParser.Tests
             const int NumValues = 100;
 
             var builder = CreateTable(ValueDelimeter, RecordDelimeter, NumRecords, NumValues);
-
-            var parser = CreateParser(builder, ValueDelimeter, RecordDelimeter);
+            var parser = new DsvParser(builder.ToString(), ValueDelimeter, RecordDelimeter);
 
             var numRecords = parser.RecordsLength;
             Assert.AreEqual(NumRecords, numRecords);
@@ -132,9 +128,8 @@ namespace DelimiterSeparatedTextParser.Tests
             const int NumRecords = 3;
             const int NumValues = 4;
 
-            var builder = CreateTable(CsvParser.ValueDelimeter, CsvParser.RecordDelimeter, NumRecords, NumValues);
-
-            var parser = new CsvParser(builder.ToString().AsMemory());
+            var builder = CreateTable(CsvReader.ValueDelimeter, CsvReader.RecordDelimeter, NumRecords, NumValues);
+            var parser = new CsvParser(builder.ToString());
 
             var numRecords = parser.RecordsLength;
             Assert.AreEqual(NumRecords, numRecords);
@@ -156,9 +151,8 @@ namespace DelimiterSeparatedTextParser.Tests
             const int NumRecords = 3;
             const int NumValues = 4;
 
-            var builder = CreateTable(TsvParser.ValueDelimeter, TsvParser.RecordDelimeter, NumRecords, NumValues);
-
-            var parser = new TsvParser(builder.ToString().AsMemory());
+            var builder = CreateTable(TsvReader.ValueDelimeter, TsvReader.RecordDelimeter, NumRecords, NumValues);
+            var parser = new TsvParser(builder.ToString());
 
             var numRecords = parser.RecordsLength;
             Assert.AreEqual(NumRecords, numRecords);
@@ -173,12 +167,6 @@ namespace DelimiterSeparatedTextParser.Tests
                 }
             }
         }
-
-        private static DsvParser CreateParser(StringBuilder builder, string valueDelimeter, string recordDelimeter)
-            => new DsvParser(
-                builder.ToString().AsMemory(),
-                valueDelimeter.AsSpan(),
-                recordDelimeter.AsSpan());
 
         private static StringBuilder CreateTable(
             string valueDelimeter,

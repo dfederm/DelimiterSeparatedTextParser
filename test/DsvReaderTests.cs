@@ -4,7 +4,6 @@
 
 namespace DelimiterSeparatedTextParser.Tests
 {
-    using System;
     using System.Text;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -20,7 +19,7 @@ namespace DelimiterSeparatedTextParser.Tests
             const int NumValues = 4;
 
             var builder = CreateTable(ValueDelimeter, RecordDelimeter, NumRecords, NumValues);
-            var reader = CreateReader(builder, ValueDelimeter, RecordDelimeter);
+            var reader = new DsvReader(builder.ToString(), ValueDelimeter, RecordDelimeter);
 
             Assert.IsTrue(reader.Current.IsEmpty);
             Assert.AreEqual(-1, reader.CurrentIndex);
@@ -70,7 +69,7 @@ namespace DelimiterSeparatedTextParser.Tests
                 AddRecord(builder, ValueDelimeter, recordNum, numValues);
             }
 
-            var reader = CreateReader(builder, ValueDelimeter, RecordDelimeter);
+            var reader = new DsvReader(builder.ToString(), ValueDelimeter, RecordDelimeter);
 
             Assert.IsTrue(reader.Current.IsEmpty);
             Assert.AreEqual(-1, reader.CurrentIndex);
@@ -110,7 +109,7 @@ namespace DelimiterSeparatedTextParser.Tests
 
             var builder = CreateTable(ValueDelimeter, RecordDelimeter, NumRecords, NumValues);
 
-            var reader = CreateReader(builder, ValueDelimeter, RecordDelimeter);
+            var reader = new DsvReader(builder.ToString(), ValueDelimeter, RecordDelimeter);
 
             Assert.IsTrue(reader.Current.IsEmpty);
             Assert.AreEqual(-1, reader.CurrentIndex);
@@ -149,7 +148,7 @@ namespace DelimiterSeparatedTextParser.Tests
 
             var builder = CreateTable(ValueDelimeter, RecordDelimeter, NumRecords, NumValues);
 
-            var reader = CreateReader(builder, ValueDelimeter, RecordDelimeter);
+            var reader = new DsvReader(builder.ToString(), ValueDelimeter, RecordDelimeter);
 
             Assert.IsTrue(reader.Current.IsEmpty);
             Assert.AreEqual(-1, reader.CurrentIndex);
@@ -178,11 +177,77 @@ namespace DelimiterSeparatedTextParser.Tests
             Assert.AreEqual(-1, reader.CurrentIndex);
         }
 
-        private static DsvReader CreateReader(StringBuilder builder, string valueDelimeter, string recordDelimeter)
-            => new DsvReader(
-                builder.ToString().AsSpan(),
-                valueDelimeter.AsSpan(),
-                recordDelimeter.AsSpan());
+        [TestMethod]
+        public void CsvConvenienceSubclass()
+        {
+            const int NumRecords = 3;
+            const int NumValues = 4;
+
+            var builder = CreateTable(CsvReader.ValueDelimeter, CsvReader.RecordDelimeter, NumRecords, NumValues);
+            var reader = new CsvReader(builder.ToString());
+
+            Assert.IsTrue(reader.Current.IsEmpty);
+            Assert.AreEqual(-1, reader.CurrentIndex);
+
+            for (var recordNum = 0; recordNum < NumRecords; recordNum++)
+            {
+                Assert.IsTrue(reader.MoveNextRecord());
+
+                Assert.IsTrue(reader.Current.IsEmpty);
+                Assert.AreEqual(-1, reader.CurrentIndex);
+
+                for (var valueNum = 0; valueNum < NumValues; valueNum++)
+                {
+                    Assert.IsTrue(reader.MoveNextValue());
+                    var value = reader.Current;
+                    Assert.AreEqual($"Value {recordNum}-{valueNum}", value.ToString());
+                }
+
+                Assert.IsFalse(reader.MoveNextValue());
+                Assert.IsTrue(reader.Current.IsEmpty);
+                Assert.AreEqual(-1, reader.CurrentIndex);
+            }
+
+            Assert.IsFalse(reader.MoveNextRecord());
+            Assert.IsTrue(reader.Current.IsEmpty);
+            Assert.AreEqual(-1, reader.CurrentIndex);
+        }
+
+        [TestMethod]
+        public void TsvConvenienceSubclass()
+        {
+            const int NumRecords = 3;
+            const int NumValues = 4;
+
+            var builder = CreateTable(TsvReader.ValueDelimeter, TsvReader.RecordDelimeter, NumRecords, NumValues);
+            var reader = new TsvReader(builder.ToString());
+
+            Assert.IsTrue(reader.Current.IsEmpty);
+            Assert.AreEqual(-1, reader.CurrentIndex);
+
+            for (var recordNum = 0; recordNum < NumRecords; recordNum++)
+            {
+                Assert.IsTrue(reader.MoveNextRecord());
+
+                Assert.IsTrue(reader.Current.IsEmpty);
+                Assert.AreEqual(-1, reader.CurrentIndex);
+
+                for (var valueNum = 0; valueNum < NumValues; valueNum++)
+                {
+                    Assert.IsTrue(reader.MoveNextValue());
+                    var value = reader.Current;
+                    Assert.AreEqual($"Value {recordNum}-{valueNum}", value.ToString());
+                }
+
+                Assert.IsFalse(reader.MoveNextValue());
+                Assert.IsTrue(reader.Current.IsEmpty);
+                Assert.AreEqual(-1, reader.CurrentIndex);
+            }
+
+            Assert.IsFalse(reader.MoveNextRecord());
+            Assert.IsTrue(reader.Current.IsEmpty);
+            Assert.AreEqual(-1, reader.CurrentIndex);
+        }
 
         private static StringBuilder CreateTable(
             string valueDelimeter,

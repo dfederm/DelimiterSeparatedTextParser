@@ -1,4 +1,7 @@
 # DelimiterSeparatedTextParser
+[![NuGet Version](https://img.shields.io/nuget/v/DelimiterSeparatedTextParser.svg)](https://www.nuget.org/packages/DelimiterSeparatedTextParser)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/DelimiterSeparatedTextParser.svg)](https://www.nuget.org/packages/DelimiterSeparatedTextParser)
+
 Performant delimeter-separated value (CSV, TSV, etc.) text parser.
 
 # Benchmark Results

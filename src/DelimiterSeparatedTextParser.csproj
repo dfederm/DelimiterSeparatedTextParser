@@ -2,8 +2,15 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>David Federman</Authors>
-    <AssemblyVersion>0.1.0</AssemblyVersion>
+    <Description>Performant delimeter-separated value (CSV, TSV, etc.) text parser.</Description>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>$(Version)</AssemblyVersion>
+    <FileVersion>$(Version)</FileVersion>
+    <PackageProjectUrl>https://github.com/dfederm/DelimiterSeparatedTextParser</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/dfederm/DelimiterSeparatedTextParser.git</RepositoryUrl>
+    <PackageLicenseUrl>https://github.com/dfederm/DelimiterSeparatedTextParser/blob/master/LICENSE</PackageLicenseUrl>
   </PropertyGroup>
 
   <ItemGroup>

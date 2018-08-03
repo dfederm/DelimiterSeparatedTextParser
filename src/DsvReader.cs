@@ -5,6 +5,7 @@
 namespace DelimiterSeparatedTextParser
 {
     using System;
+    using System.Runtime.CompilerServices;
 
     /// <summary>
     /// Delimiter-separated value reader.
@@ -15,17 +16,16 @@ namespace DelimiterSeparatedTextParser
 
         private readonly string recordDelimeter;
 
-        // The remainder of the unconsumed data
+        // The remainder of the unconsumed data. It does not unclude the current value.
         private ReadOnlyMemory<char> memory;
 
-        // The index of the span in the global buffer
+        // The index of the span in the global buffer.
+        // This will always be the index of the next value, not the current value.
         private int index;
 
-        // The remainder of the unconsumed data for this record
-        private ReadOnlyMemory<char> recordMemory;
-
-        // The index of the span in the global buffer
-        private int recordIndex;
+        // Whether the read is currently inside of a record.
+        // If false, MoveNextValue should always return false until MoveNextRecord is called.
+        private bool isInRecord;
 
         public DsvReader(string str, string valueDelimeter, string recordDelimeter)
             : this(str.AsMemory(), valueDelimeter, recordDelimeter)
@@ -36,9 +36,6 @@ namespace DelimiterSeparatedTextParser
         {
             this.memory = memory;
             this.index = 0;
-
-            this.recordMemory = ReadOnlyMemory<char>.Empty;
-            this.recordIndex = 0;
 
             this.valueDelimeter = valueDelimeter;
             this.recordDelimeter = recordDelimeter;
@@ -73,27 +70,22 @@ namespace DelimiterSeparatedTextParser
             if (this.memory.IsEmpty)
             {
                 this.Current = ReadOnlyMemory<char>.Empty;
+                this.CurrentIndex = -1;
                 return false;
             }
 
-            var recordDelimeterIndex = this.memory.Span.IndexOf(this.recordDelimeter.AsSpan());
-            if (recordDelimeterIndex == -1)
+            if (this.isInRecord)
             {
-                // The rest of the span is the final value.
-                this.recordMemory = this.memory;
-                this.recordIndex = this.index;
-
-                this.memory = ReadOnlyMemory<char>.Empty;
-                this.index = -1;
+                while (this.MoveNextValue())
+                {
+                    // No-op. We're just reading the rest of the record.
+                }
             }
-            else
-            {
-                this.recordMemory = this.memory.Slice(0, recordDelimeterIndex);
-                this.recordIndex = this.index;
 
-                var moveAmount = recordDelimeterIndex + this.recordDelimeter.Length;
-                this.memory = this.memory.Slice(moveAmount);
-                this.index += moveAmount;
+            if (!this.isInRecord)
+            {
+                this.isInRecord = true;
+                return true;
             }
 
             return true;
@@ -108,35 +100,95 @@ namespace DelimiterSeparatedTextParser
         /// <returns>True if there is a new value, false if the end of the record data has been reached.</returns>
         public bool MoveNextValue()
         {
-            // Record is completely consumed
-            if (this.recordMemory.IsEmpty)
+            // Current record is completely consumed
+            if (!this.isInRecord)
             {
                 this.Current = ReadOnlyMemory<char>.Empty;
                 this.CurrentIndex = -1;
                 return false;
             }
 
-            var valueDelimeterIndex = this.recordMemory.Span.IndexOf(this.valueDelimeter.AsSpan());
-            if (valueDelimeterIndex == -1)
+            var span = this.memory.Span;
+            var valueDelimeterSpan = this.valueDelimeter.AsSpan();
+            var recordDelimeterSpan = this.recordDelimeter.AsSpan();
+
+            var length = span.Length;
+            var i = 0;
+            while (i < length)
             {
-                // The rest of the span is the final value.
-                this.Current = this.recordMemory;
-                this.CurrentIndex = this.recordIndex;
+                if (IsAtDelimeter(span, valueDelimeterSpan, i, length))
+                {
+                    // Found value delimeter
+                    this.Current = this.memory.Slice(0, i);
+                    this.CurrentIndex = this.index;
 
-                this.recordMemory = ReadOnlyMemory<char>.Empty;
-                this.recordIndex = -1;
+                    var moveAmount = i + valueDelimeterSpan.Length;
+                    this.memory = this.memory.Slice(moveAmount);
+                    this.index += moveAmount;
+
+                    this.isInRecord = true;
+                    return true;
+                }
+
+                if (IsAtDelimeter(span, recordDelimeterSpan, i, length))
+                {
+                    // Found record delimeter
+                    this.Current = this.memory.Slice(0, i);
+                    this.CurrentIndex = this.index;
+
+                    var moveAmount = i + recordDelimeterSpan.Length;
+                    this.memory = this.memory.Slice(moveAmount);
+                    this.index += moveAmount;
+
+                    this.isInRecord = false;
+                    return true;
+                }
+
+                i++;
             }
-            else
-            {
-                this.Current = this.recordMemory.Slice(0, valueDelimeterIndex);
-                this.CurrentIndex = this.recordIndex;
 
-                var moveAmount = valueDelimeterIndex + this.valueDelimeter.Length;
-                this.recordMemory = this.recordMemory.Slice(moveAmount);
-                this.recordIndex += moveAmount;
-            }
+            // Hit the end of the data, the rest of the span is the final value.
+            this.Current = this.memory;
+            this.CurrentIndex = this.index;
 
+            this.memory = ReadOnlyMemory<char>.Empty;
+            this.index = -1;
+
+            this.isInRecord = false;
             return true;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool IsAtDelimeter(ReadOnlySpan<char> span, ReadOnlySpan<char> delimeter, int i, int length)
+        {
+            // Check the first character to short-circuit the condition
+            if (span[i] != delimeter[0])
+            {
+                return false;
+            }
+
+            switch (delimeter.Length)
+            {
+                // If the delimeter is only 1 character, no need to check more
+                case 1:
+                {
+                    return true;
+                }
+
+                // Special-case a delimeter length of 2 a well
+                case 2:
+                {
+                    return i + 1 <= length
+                           && span[i + 1] == delimeter[1];
+                }
+
+                // If more than 2, use SequenceEqual
+                default:
+                {
+                    return i + delimeter.Length < length
+                           && span.Slice(i, delimeter.Length).SequenceEqual(delimeter);
+                }
+            }
         }
     }
 }

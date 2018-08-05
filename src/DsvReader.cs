@@ -119,13 +119,7 @@ namespace DelimiterSeparatedTextParser
                 if (IsAtDelimeter(span, valueDelimeterSpan, i, length))
                 {
                     // Found value delimeter
-                    this.Current = this.memory.Slice(0, i);
-                    this.CurrentIndex = this.index;
-
-                    var moveAmount = i + valueDelimeterSpan.Length;
-                    this.memory = this.memory.Slice(moveAmount);
-                    this.index += moveAmount;
-
+                    this.Move(i, valueDelimeterSpan);
                     this.isInRecord = true;
                     return true;
                 }
@@ -133,13 +127,7 @@ namespace DelimiterSeparatedTextParser
                 if (IsAtDelimeter(span, recordDelimeterSpan, i, length))
                 {
                     // Found record delimeter
-                    this.Current = this.memory.Slice(0, i);
-                    this.CurrentIndex = this.index;
-
-                    var moveAmount = i + recordDelimeterSpan.Length;
-                    this.memory = this.memory.Slice(moveAmount);
-                    this.index += moveAmount;
-
+                    this.Move(i, recordDelimeterSpan);
                     this.isInRecord = false;
                     return true;
                 }
@@ -189,6 +177,17 @@ namespace DelimiterSeparatedTextParser
                            && span.Slice(i, delimeter.Length).SequenceEqual(delimeter);
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void Move(int delimeterPosition, ReadOnlySpan<char> delimeter)
+        {
+            this.Current = this.memory.Slice(0, delimeterPosition);
+            this.CurrentIndex = this.index;
+
+            var moveAmount = delimeterPosition + delimeter.Length;
+            this.memory = this.memory.Slice(moveAmount);
+            this.index += moveAmount;
         }
     }
 }
